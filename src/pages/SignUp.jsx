@@ -2,19 +2,56 @@ import React, { useState } from 'react'
 import {AiFillEye, AiFillEyeInvisible} from "react-icons/ai"
 import { Link } from 'react-router-dom';
 import OAuth from '../components/OAuth';
+import 
+{getAuth, 
+  createUserWithEmailAndPassword, 
+  updateProfile} from "firebase/auth";
+import {db} from "../firebase";
+import {doc, serverTimestamp, setDoc} from 
+"firebase/firestore";
+import {useNavigate} from "react-router-dom"; 
+import {toast} from "react-toastify";
 export default function SignUp() {
-  const [showPassword, setShowPassword] = useState(false); 
+  const [showPassword, setShowPassword] = 
+  useState(false); 
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
   });
   const {name, email, password} = formData;
+  const navigate = useNavigate();
   function onChange(e) {
     setFormData((prevState) => ({
       ...prevState,
       [e.target.id]: e.target.value,
     }));
+  }
+  async function onSubmit(e){
+    e.preventDefault(); //disable refreshing. What is async func?
+
+    try {
+      const auth = getAuth();
+      const userCredential = await createUserWithEmailAndPassword(
+        auth, 
+        email, 
+        password
+        );
+        updateProfile(auth.currentUser, {
+          displayName: name
+        })
+      const user = userCredential.user;
+      const formDataCopy = {...formData}
+      delete formData.password //delete the password save as its more secure to use Firebase password storage
+      formDataCopy.timestamp = serverTimestamp
+      ();
+
+      await setDoc(doc(db, "users", user.uid), formDataCopy); //"users" is what I'll see under Cloud FireStore "start collection"
+      //toast.success("Sign Up was successful!");
+      navigate("/"); //Navigate to home page after adding the china onto db
+    } catch (error) {
+      toast.error("Something Went Wrong with the registration");
+    }
   }
   return (
     <section>
@@ -29,7 +66,7 @@ export default function SignUp() {
           <img src="https://images.unsplash.com/flagged/photo-1564767609342-620cb19b2357?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8a2V5fGVufDB8fDB8fHww&auto=format&fit=crop&w=500&q=60" alt="key" className="w-full rounded-2xl"/>
         </div>
         <div className="w-full md:w-[67%] lg:w-[40%] lg:ml-20">
-          <form>
+          <form onSubmit={onSubmit}>
             <input type="text" 
             id="name" 
             value={name} 
